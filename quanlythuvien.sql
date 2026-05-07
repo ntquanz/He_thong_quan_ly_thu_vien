@@ -1,0 +1,121 @@
+/*
+    PHAN 1: TAO DATABASE
+*/ 
+CREATE DATABASE quanlythuvien
+ON PRIMARY(
+	NAME = 'QLThuvien1_Data',
+	FILENAME = 'D:\Data\QLThuvien1.mdf',
+	SIZE = 100 MB,
+	FILEGROWTH = 10MB,
+    MAXSIZE = 200MB
+)
+LOG ON (
+    NAME = 'QLThuvien1_Log',
+    FILENAME = 'D:\Data\QLThuvien1.ldf',
+    SIZE = 30MB,
+    FILEGROWTH = 5MB,
+    MAXSIZE = UNLIMITED
+);
+USE quanlythuvien
+GO
+
+/*
+    PHAN 2: TAO CAC BANG
+*/
+
+CREATE TABLE THE_LOAI(
+    MaTheLoai VARCHAR(10) NOT NULL,
+    TenTheLoai NVARCHAR(50) NOT NULL,
+    MoTa NVARCHAR(50),
+    CONSTRAINT PK_THE_LOAI PRIMARY KEY (MaTheLoai),
+    CONSTRAINT UQ_THE_LOAI_TEN UNIQUE (TenTheLoai)
+);
+
+CREATE TABLE NHA_XUAT_BAN(
+    MaNXB VARCHAR(10) NOT NULL,
+    TenNXB NVARCHAR(50) NOT NULL,
+    DiaChi NVARCHAR(50),
+    Email VARCHAR(50),
+    CONSTRAINT PK_NHA_XUAT_BAN PRIMARY KEY (MaNXB),
+    CONSTRAINT UQ_NXB_TEN UNIQUE (TenNXB),
+);
+
+CREATE TABLE TAC_GIA(
+    MaTacGia VARCHAR(10) NOT NULL,
+    HoTen NVARCHAR(50) NOT NULL,
+    QuocTich NVARCHAR(20),
+    CONSTRAINT PK_TAC_GIA PRIMARY KEY (MaTacGia)
+);
+
+CREATE TABLE SACH(
+    MaSach VARCHAR(10) NOT NULL,
+    TenSach NVARCHAR(50) NOT NULL,
+    NamXuatBan INT CHECK (Namxuatban BETWEEN 1900 AND 2100),
+    MaNXB VARCHAR(10),
+    MaTheLoai VARCHAR(10),
+    SoLuong INT NOT NULL, 
+    CONSTRAINT PK_SACH PRIMARY KEY (MaSach),
+    CONSTRAINT FK_SACH_NXB FOREIGN KEY (MaNXB) REFERENCES NHA_XUAT_BAN (MaNXB),
+    CONSTRAINT FK_SACH_TL FOREIGN KEY (MaTheLoai) REFERENCES THE_LOAI (MaTheLoai)
+);
+
+CREATE TABLE SACH_TACGIA(
+    MaSach VARCHAR(10) NOT NULL,
+    MaTacGia VARCHAR(10) NOT NULL,
+    CONSTRAINT PK_SACH_TACGIA PRIMARY KEY (MaSach, MaTacGia),
+    CONSTRAINT FK_MA_SACH FOREIGN KEY (MaSach) REFERENCES SACH (MaSach),
+    CONSTRAINT FK_MA_TG FOREIGN KEY (MaTacGia) REFERENCES TAC_GIA (MaTacGia),
+);
+
+CREATE TABLE BAN_SAO(
+    MaBanSao VARCHAR(15) NOT NULL, 
+    MaSach VARCHAR(10) NOT NULL,
+    NgayNhap DATE NOT NULL DEFAULT GETDATE(),
+    Tinhtrang NVARCHAR(10) NOT NULL DEFAULT N'Có sẵn'
+                       CONSTRAINT CHK_BanSao_TinhTrang
+                       CHECK (TinhTrang IN (N'Có sẵn', N'Đang mượn', N'Hỏng', N'Mất')),
+    CONSTRAINT PK_BAN_SAO    PRIMARY KEY (MaBanSao),
+    CONSTRAINT FK_BANSAO_SACH FOREIGN KEY (MaSach) REFERENCES SACH(MaSach)
+);
+
+CREATE TABLE NHAN_VIEN(
+    MaNhanVien VARCHAR(10) NOT NULL,
+    HoTen NVARCHAR(50) NOT NULL,
+    SoDienThoai VARCHAR(15) NOT NULL,
+    ChucVu NVARCHAR(50) DEFAULT N'Nhan vien',
+    NgayVaoLam Date NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT PK_NHAN_VIEN PRIMARY KEY (MaNhanVien),
+);
+
+CREATE TABLE DOC_GIA (
+    MaDocGia    VARCHAR(10)   NOT NULL,
+    HoTen       NVARCHAR(100) NOT NULL,
+    SoDienThoai VARCHAR(15),
+    DiaChi      NVARCHAR(200),
+    NgayCapThe  DATE          NOT NULL DEFAULT GETDATE(),
+    NgayHetHan  DATE          NOT NULL,
+    GioiTinh    NVARCHAR(5)   CHECK (GioiTinh IN (N'Nam', N'Nu')),
+    TrangThai   NVARCHAR(20)  DEFAULT N'Hoạt động'
+                              CHECK (TrangThai IN (N'Hoạt động', N'Hết hạn', N'Bị khóa')),
+    CONSTRAINT PK_DOC_GIA PRIMARY KEY (MaDocGia),
+    CONSTRAINT CHK_DocGia_NgayHetHan CHECK (NgayHetHan > NgayCapThe)
+);
+
+CREATE TABLE PHIEU_MUON (
+    MaPhieu     INT          NOT NULL IDENTITY(1,1),
+    MaDocGia    VARCHAR(10)  NOT NULL,
+    MaBanSao    VARCHAR(15)  NOT NULL,
+    MaNhanVien  VARCHAR(10)  NOT NULL,
+    NgayMuon    DATE         NOT NULL DEFAULT GETDATE(),
+    NgayHenTra  DATE         NOT NULL,
+    NgayTraThuc DATE         NULL,
+    TienPhat    DECIMAL(10,0) DEFAULT 0,
+    TrangThai   NVARCHAR(20) DEFAULT N'Đang mượn'
+                             CHECK (TrangThai IN (N'Đang mượn', N'Đã trả', N'Quá hạn')),
+    CONSTRAINT PK_PHIEU_MUON   PRIMARY KEY (MaPhieu),
+    CONSTRAINT FK_PM_DOCGIA    FOREIGN KEY (MaDocGia)   REFERENCES DOC_GIA(MaDocGia),
+    CONSTRAINT FK_PM_BANSAO    FOREIGN KEY (MaBanSao)   REFERENCES BAN_SAO(MaBanSao),
+    CONSTRAINT FK_PM_NHANVIEN  FOREIGN KEY (MaNhanVien) REFERENCES NHAN_VIEN(MaNhanVien),
+    CONSTRAINT CHK_PM_NgayHen  CHECK (NgayHenTra >= NgayMuon),
+    CONSTRAINT CHK_PM_NgayTra  CHECK (NgayTraThuc IS NULL OR NgayTraThuc >= NgayMuon)
+);
