@@ -27,6 +27,9 @@ window.addEventListener('load', () => {
   const userInfo = document.getElementById('userInfo');
   userInfo.textContent = `👤 ${user.hoTen} (${user.chucVu})`;
 
+  // Nếu là quản lý, thêm nút Báo cáo vào nav
+  addAdminButtonIfNeeded(user);
+
   // Load danh sách sách mặc định
   loadBooks();
 });
@@ -37,6 +40,24 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   localStorage.removeItem('user');
   window.location.href = '/login.html';
 });
+
+// Thêm nút Báo cáo nếu user là quản lý
+function addAdminButtonIfNeeded(user) {
+  if (!user || !user.chucVu) return;
+  
+  const chucVuStr = String(user.chucVu).toLowerCase();
+  const isManager = chucVuStr.includes('quản') || chucVuStr.includes('quan');
+  
+  if (isManager) {
+    const nav = document.querySelector('nav');
+    if (nav) {
+      const btn = document.createElement('button');
+      btn.textContent = '📊 Báo cáo';
+      btn.addEventListener('click', loadAdminDashboard);
+      nav.appendChild(btn);
+    }
+  }
+}
 
 // Lấy danh sách sách
 async function loadBooks() {
@@ -897,5 +918,70 @@ async function submitReturnLoan(e) {
     loadLoans();
   } catch (error) {
     alert('Lỗi: ' + error.message);
+  }
+}
+
+// Load admin dashboard (available cho quản lý)
+async function loadAdminDashboard() {
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/admin/summary`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      if (res.status === 403) {
+        alert('Bạn không có quyền xem báo cáo');
+        return;
+      }
+      throw new Error('Không thể tải báo cáo');
+    }
+
+    const data = await res.json();
+
+    const cardsHtml = `
+      <div class="cards">
+        <div class="card">Tổng Sách<br><strong>${data.totalBooks}</strong></div>
+        <div class="card">Tổng Bản sao<br><strong>${data.totalCopies}</strong></div>
+        <div class="card">Tổng Độc giả<br><strong>${data.totalMembers}</strong></div>
+        <div class="card">Đang mượn<br><strong>${data.openLoans}</strong></div>
+        <div class="card">Quá hạn<br><strong>${data.overdueCount}</strong></div>
+        <div class="card">Tổng tiền phạt<br><strong>${formatCurrency(data.totalFines)}</strong></div>
+      </div>
+    `;
+
+    let membersStatusHtml = '<table border="1"><tr><th>Trạng thái</th><th>Số lượng</th></tr>';
+    (data.membersByStatus || []).forEach(s => {
+      membersStatusHtml += `<tr><td>${s.TrangThai}</td><td>${s.count}</td></tr>`;
+    });
+    membersStatusHtml += '</table>';
+
+    let topBooksHtml = '<table border="1"><tr><th>Rank</th><th>Mã sách</th><th>Tên sách</th><th>Số lần mượn</th></tr>';
+    (data.topBooks || []).forEach((b, i) => {
+      topBooksHtml += `<tr><td>${i+1}</td><td>${b.MaSach || ''}</td><td>${b.TenSach || ''}</td><td>${b.borrowCount}</td></tr>`;
+    });
+    topBooksHtml += '</table>';
+
+    let monthlyHtml = '<table border="1"><tr><th>Năm</th><th>Tháng</th><th>Số phiếu mượn</th></tr>';
+    (data.monthlyBorrow || []).forEach(r => {
+      monthlyHtml += `<tr><td>${r.yr}</td><td>${r.m}</td><td>${r.cnt}</td></tr>`;
+    });
+    monthlyHtml += '</table>';
+
+    const html = `
+      <h2>📊 Báo cáo Tổng quan</h2>
+      ${cardsHtml}
+      <h3>Trạng thái độc giả</h3>
+      ${membersStatusHtml}
+      <h3>Top sách mượn nhiều nhất</h3>
+      ${topBooksHtml}
+      <h3>Số phiếu mượn theo tháng (12 tháng gần nhất)</h3>
+      ${monthlyHtml}
+    `;
+
+    document.getElementById('content').innerHTML = html;
+  } catch (err) {
+    console.error(err);
+    document.getElementById('content').innerHTML = '<p style="color:red;">Lỗi khi tải báo cáo</p>';
   }
 }

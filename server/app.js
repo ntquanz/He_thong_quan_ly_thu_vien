@@ -67,6 +67,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/books', require('./routes/books'));
 app.use('/api/members', require('./routes/members'));
 app.use('/api/loans', require('./routes/loans'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Error Handler Middleware
 app.use((err, req, res, next) => {
