@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+
+# Environment files (local secrets)
+.env
+.env.local
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime files
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage and build
+coverage/
+dist/
+build/
+tmp/
+temp/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+.AppleDouble
+.LSOverride
+
+# Keys, certs and secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.crt
+*.csr
+certs/
+*.der
+*.asc
+
+# Databases and dumps
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
+
+# SSH and credentials
+.ssh/
+credentials.json
+azureProfile.json
+*.env.backup
+.envrc
+
+# Misc
+.history/
+.cache/
+.parcel-cache/
